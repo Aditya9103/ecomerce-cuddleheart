@@ -27,14 +27,14 @@ const Cart = () => {
   // Filter out any invalid items where the product might have been deleted from the database
   items = items.filter(item => item && item.product);
 
-  const subtotal = items.reduce((acc, item) => {
+  const subtotal = Math.round(items.reduce((acc, item) => {
     const p = item.product;
     if (!p) return acc;
     const priceToUse = (p.activeOffer && p.offerPrice) ? p.offerPrice : p.price;
     return acc + (priceToUse * item.quantity);
-  }, 0);
+  }, 0));
   const shipping = subtotal > 999 ? 0 : 50; // free shipping above 999
-  const total = subtotal + shipping;
+  const total = Math.round(subtotal + shipping);
 
   const handleUpdateQuantity = async (itemId, currentQuantity, change) => {
     const newQuantity = currentQuantity + change;

@@ -36,25 +36,25 @@ const Checkout = () => {
   const cartItems = cart?.items || [];
   
   // Calculate Totals
-  const itemsPrice = cartItems.reduce((acc, item) => {
+  const itemsPrice = Math.round(cartItems.reduce((acc, item) => {
     const p = item.product;
     if (!p) return acc;
     const priceToUse = (p.activeOffer && p.offerPrice) ? p.offerPrice : p.price;
     return acc + (priceToUse * item.quantity);
-  }, 0);
+  }, 0));
   const taxPrice = 0; // Assuming tax is inclusive for now
   const shippingPrice = itemsPrice > 999 ? 0 : 50;
   
   let discountAmount = 0;
   if (discountInfo) {
     if (discountInfo.discountType === 'percentage') {
-      discountAmount = (itemsPrice * discountInfo.discountValue) / 100;
+      discountAmount = Math.round((itemsPrice * discountInfo.discountValue) / 100);
     } else if (discountInfo.discountType === 'fixed') {
-      discountAmount = discountInfo.discountValue;
+      discountAmount = Math.round(discountInfo.discountValue);
     }
   }
 
-  const totalPrice = itemsPrice + shippingPrice - discountAmount + taxPrice;
+  const totalPrice = Math.round(itemsPrice + shippingPrice - discountAmount + taxPrice);
 
   useEffect(() => {
     if (!userInfo) {
