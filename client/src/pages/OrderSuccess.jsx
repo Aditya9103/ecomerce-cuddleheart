@@ -2,11 +2,38 @@ import { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronRight, Package, Truck, Calendar } from 'lucide-react';
 import { useGetOrderDetailsQuery } from '../store/slices/orderApiSlice';
+import { useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
+import { FileText } from 'lucide-react';
 
 const OrderSuccess = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { data: order, isLoading, error } = useGetOrderDetailsQuery(orderId);
+  const { userInfo } = useSelector((state) => state.auth);
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/orders/${order._id}/invoice`, {
+        headers: {
+          'Authorization': `Bearer ${userInfo.token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to download invoice');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-INV-${order._id.toString().slice(-6).toUpperCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not download invoice');
+    }
+  };
 
   useEffect(() => {
     if (error) {
@@ -45,7 +72,7 @@ const OrderSuccess = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Total Amount</p>
-                <p className="font-bold text-gray-900">₹{order.totalPrice}</p>
+                <p className="font-bold text-gray-900">₹{order.totalAmount}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Payment Method</p>
@@ -83,6 +110,9 @@ const OrderSuccess = () => {
             <Link to={`/orders/${order._id}`} className="px-8 py-3 bg-gray-100 text-gray-700 font-bold rounded-full hover:bg-gray-200 transition">
               View Order Details
             </Link>
+            <button onClick={handleDownloadInvoice} className="px-8 py-3 bg-indigo-50 text-indigo-700 font-bold rounded-full hover:bg-indigo-100 transition flex items-center justify-center gap-2">
+              <FileText size={18} /> Download Invoice
+            </button>
             <Link to="/shop" className="btn-primary">
               Continue Shopping
             </Link>

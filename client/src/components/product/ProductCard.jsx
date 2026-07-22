@@ -17,6 +17,7 @@ const ProductCard = ({ product }) => {
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!userInfo) {
       navigate('/login');
       return;
@@ -26,6 +27,7 @@ const ProductCard = ({ product }) => {
 
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!userInfo) {
       navigate('/login');
       return;
@@ -33,7 +35,10 @@ const ProductCard = ({ product }) => {
     await toggleWishlist({ productId: product._id });
   };
   return (
-    <div className="card-soft relative group flex flex-col h-full overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-3xl">
+    <div 
+      onClick={() => navigate(`/product/${product.slug}`)}
+      className="card-soft relative group flex flex-col h-full overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-3xl cursor-pointer"
+    >
       {/* Top badges */}
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
         {product.activeOffer && product.offerPrice && (

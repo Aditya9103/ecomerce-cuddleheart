@@ -32,6 +32,7 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState('');
   const [discountInfo, setDiscountInfo] = useState(null); // { code, discountType, discountValue }
   const [couponError, setCouponError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const cartItems = cart?.items || [];
   
@@ -98,6 +99,12 @@ const Checkout = () => {
       toast.error('Your cart is empty');
       return;
     }
+
+    setShowConfirmModal(true);
+  };
+
+  const executePlaceOrder = async () => {
+    setShowConfirmModal(false);
 
     const shippingAddressObj = profile.addresses.find(a => a._id === selectedAddress);
 
@@ -378,6 +385,44 @@ const Checkout = () => {
           
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-heading font-bold text-gray-900 mb-2">Confirm Order</h3>
+              <p className="text-gray-600 mb-4">Are you sure you want to place this order?</p>
+              
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm border border-gray-100">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total Amount:</span>
+                  <span className="font-bold text-gray-900">₹{totalPrice}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Payment:</span>
+                  <span className="font-bold text-gray-900">{paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online (Razorpay)'}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={executePlaceOrder}
+                  className="flex-1 px-4 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

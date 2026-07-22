@@ -1,10 +1,36 @@
 import { useParams, Link } from 'react-router-dom';
 import { useGetOrderDetailsQuery } from '../store/slices/orderApiSlice';
-import { ArrowLeft, CheckCircle2, Package, Truck, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Package, Truck, Check, FileText } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 
 const OrderDetail = () => {
   const { id } = useParams();
   const { data: order, isLoading, error } = useGetOrderDetailsQuery(id);
+  const { userInfo } = useSelector((state) => state.auth);
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/orders/${order._id}/invoice`, {
+        headers: {
+          'Authorization': `Bearer ${userInfo.token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to download invoice');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-INV-${order._id.toString().slice(-6).toUpperCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not download invoice');
+    }
+  };
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading order details...</div>;
 
@@ -44,6 +70,9 @@ const OrderDetail = () => {
               ${order.paymentStatus === 'paid' || order.isPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
               {order.paymentStatus === 'paid' || order.isPaid ? 'PAID' : 'UNPAID'}
             </span>
+            <button onClick={handleDownloadInvoice} className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 flex items-center gap-1 transition-colors">
+              <FileText size={14} /> INVOICE
+            </button>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addOrderItems, getMyOrders, getOrderById, getAllOrders, updateOrderStatus, getDashboardStats, createRazorpayOrder, verifyRazorpayPayment, razorpayWebhook } = require('../controllers/orderController');
+const { addOrderItems, getMyOrders, getOrderById, getAllOrders, updateOrderStatus, getDashboardStats, createRazorpayOrder, verifyRazorpayPayment, razorpayWebhook, downloadInvoice } = require('../controllers/orderController');
 const { protect, requireAdmin } = require('../middleware/authMiddleware');
 
 router.route('/')
@@ -15,6 +15,8 @@ router.post('/razorpay/webhook', razorpayWebhook);
 
 router.route('/:id')
   .get(protect, getOrderById);
+
+router.get('/:id/invoice', protect, downloadInvoice);
 
 router.route('/:id/status')
   .put(protect, requireAdmin, updateOrderStatus); // Admin update status

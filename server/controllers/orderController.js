@@ -1,10 +1,56 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
+const User = require('../models/User');
+const StoreSettings = require('../models/StoreSettings');
 const Product = require('../models/Product');
 const sendEmail = require('../utils/sendEmail');
+const { generateInvoice } = require('../utils/generateInvoice');
 const razorpay = require('../config/razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+
+const sendOrderConfirmation = async (order) => {
+  try {
+    const storeSettings = await StoreSettings.findOne() || {};
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+    
+    // Generate PDF to a buffer
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      const chunks = [];
+      generateInvoice(
+        populatedOrder,
+        storeSettings,
+        (chunk) => chunks.push(chunk),
+        () => resolve(Buffer.concat(chunks))
+      );
+    });
+
+    const message = `Your order ${order._id} has been successfully placed.`;
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px;">
+        <h2>Order Confirmation</h2>
+        <p>Thank you for your order! Your order ID is <strong>${order._id}</strong>.</p>
+        <p>Please find your official tax invoice attached to this email.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      email: populatedOrder.user.email,
+      subject: `Order Confirmation - ${order._id}`,
+      message,
+      html,
+      attachments: [
+        {
+          filename: `Invoice-${order._id}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    });
+  } catch (error) {
+    console.error('Failed to send order confirmation email:', error);
+  }
+};
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -61,6 +107,8 @@ const addOrderItems = async (req, res) => {
       cart.items = [];
       await cart.save();
     }
+
+    sendOrderConfirmation(createdOrder);
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -312,6 +360,8 @@ const verifyRazorpayPayment = async (req, res, next) => {
       order.paidAt = Date.now();
       
       await order.save({ session });
+      
+      sendOrderConfirmation(order);
 
       // Decrement Stock
       for (const item of order.items) {
@@ -408,6 +458,38 @@ const razorpayWebhook = async (req, res, next) => {
   }
 };
 
+// @desc    Download invoice PDF
+// @route   GET /api/orders/:id/invoice
+// @access  Private
+const downloadInvoice = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const storeSettings = await StoreSettings.findOne() || {};
+
+    const filename = `Invoice-INV-${order._id.toString().slice(-6).toUpperCase()}.pdf`;
+    res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+    res.setHeader('Content-type', 'application/pdf');
+
+    generateInvoice(
+      order,
+      storeSettings,
+      (chunk) => res.write(chunk),
+      () => res.end()
+    );
+  } catch (error) {
+    console.error('Invoice generation error:', error);
+    res.status(500).json({ message: 'Server Error generating invoice' });
+  }
+};
+
 module.exports = {
   addOrderItems,
   getMyOrders,
@@ -418,4 +500,5 @@ module.exports = {
   createRazorpayOrder,
   verifyRazorpayPayment,
   razorpayWebhook,
+  downloadInvoice
 };

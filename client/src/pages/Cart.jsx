@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useGetCartQuery, useUpdateCartItemMutation, useRemoveFromCartMutation } from '../store/slices/cartApiSlice';
 
@@ -9,8 +10,10 @@ import { Navigate } from 'react-router-dom';
 
 const Cart = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { userInfo } = useSelector(state => state.auth);
   const { guestCartItems } = useSelector(state => state.cart);
+  const [updatingItemId, setUpdatingItemId] = useState(null);
 
   const { data: cart, isLoading } = useGetCartQuery(undefined, { skip: !userInfo });
   const [updateCartItem] = useUpdateCartItemMutation();
@@ -36,22 +39,40 @@ const Cart = () => {
   const shipping = subtotal > 999 ? 0 : 50; // free shipping above 999
   const total = Math.round(subtotal + shipping);
 
-  const handleUpdateQuantity = async (itemId, currentQuantity, change) => {
+  const handleUpdateQuantity = async (e, itemId, currentQuantity, change) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     const newQuantity = currentQuantity + change;
     if (newQuantity > 0) {
-      if (userInfo) {
-        await updateCartItem({ itemId, quantity: newQuantity });
-      } else {
-        dispatch(updateGuestCartQuantity({ id: itemId, quantity: newQuantity }));
+      setUpdatingItemId(itemId);
+      try {
+        if (userInfo) {
+          await updateCartItem({ itemId, quantity: newQuantity });
+        } else {
+          dispatch(updateGuestCartQuantity({ id: itemId, quantity: newQuantity }));
+        }
+      } finally {
+        setUpdatingItemId(null);
       }
     }
   };
 
-  const handleRemove = async (itemId) => {
-    if (userInfo) {
-      await removeCartItem(itemId);
-    } else {
-      dispatch(removeFromGuestCart(itemId));
+  const handleRemove = async (e, itemId) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setUpdatingItemId(itemId);
+    try {
+      if (userInfo) {
+        await removeCartItem(itemId);
+      } else {
+        dispatch(removeFromGuestCart(itemId));
+      }
+    } finally {
+      setUpdatingItemId(null);
     }
   };
 
@@ -80,16 +101,20 @@ const Cart = () => {
                 const itemId = userInfo ? item._id : item.product._id;
 
                 return (
-                  <div key={itemId} className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center">
-                    <Link to={`/product/${item.product.slug}`} className="w-24 h-24 bg-gray-50 rounded-lg flex-shrink-0 flex items-center justify-center p-2">
+                  <div 
+                    key={itemId} 
+                    onClick={() => navigate(`/product/${item.product.slug}`)}
+                    className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-24 h-24 bg-gray-50 rounded-lg flex-shrink-0 flex items-center justify-center p-2">
                       <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply" />
-                    </Link>
+                    </div>
 
                     <div className="flex-grow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <Link to={`/product/${item.product.slug}`}>
+                        <div>
                           <h3 className="font-bold text-gray-800 hover:text-primary transition-colors">{item.product.name}</h3>
-                        </Link>
+                        </div>
                         <div className="text-primary font-bold mt-1">
                           {item.product.activeOffer && item.product.offerPrice ? (
                             <>
@@ -103,17 +128,17 @@ const Cart = () => {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-6">
-                        <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
-                          <button onClick={() => handleUpdateQuantity(itemId, item.quantity, -1)} className="text-gray-500 hover:text-primary disabled:opacity-50" disabled={item.quantity <= 1}>
+                        <div className={`flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 transition-opacity ${updatingItemId === itemId ? 'opacity-50 pointer-events-none' : ''}`}>
+                          <button onClick={(e) => handleUpdateQuantity(e, itemId, item.quantity, -1)} className="text-gray-500 hover:text-primary disabled:opacity-50" disabled={item.quantity <= 1 || updatingItemId === itemId}>
                             <Minus size={16} />
                           </button>
                           <span className="w-4 text-center text-sm font-bold">{item.quantity}</span>
-                          <button onClick={() => handleUpdateQuantity(itemId, item.quantity, 1)} className="text-gray-500 hover:text-primary">
+                          <button onClick={(e) => handleUpdateQuantity(e, itemId, item.quantity, 1)} className="text-gray-500 hover:text-primary disabled:opacity-50" disabled={updatingItemId === itemId}>
                             <Plus size={16} />
                           </button>
                         </div>
 
-                        <button onClick={() => handleRemove(itemId)} className="text-red-400 hover:text-red-600 p-2 bg-red-50 hover:bg-red-100 rounded-full transition-colors">
+                        <button onClick={(e) => handleRemove(e, itemId)} disabled={updatingItemId === itemId} className={`text-red-400 hover:text-red-600 p-2 bg-red-50 hover:bg-red-100 rounded-full transition-all ${updatingItemId === itemId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <Trash2 size={18} />
                         </button>
                       </div>
