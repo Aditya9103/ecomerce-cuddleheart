@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #EC4899;
+  --color-primary-dark: #DB2777;
+  --color-primary-light: #FCE7F3;
+  --color-heading: #7A2E2E;
+  --color-cream: #FDF3EC;
+  --color-star: #FBBF24;
+  --color-border: #F3E8E3;
+  --color-textMuted: #6B7280;
+
+  --font-heading: "Baloo 2", "Poppins", sans-serif;
+  --font-body: "Inter", "Nunito Sans", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-body text-gray-800 bg-white;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-heading;
+  }
+}
+
+/* Custom shape rules */
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-dark text-white font-medium rounded-full px-6 py-2 transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-white border border-primary text-primary hover:bg-primary-light font-medium rounded-full px-6 py-2 transition-colors;
+  }
+  .badge-discount {
+    @apply bg-primary text-white font-bold rounded-full flex items-center justify-center text-center;
+  }
+  .card-soft {
+    @apply bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-border;
+  }
+}
