@@ -11,13 +11,5 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
     ],
-    server: {
-      proxy: {
-        '/api': {
-          target: env.VITE_SERVER_URL ,
-          changeOrigin: true,
-        },
-      },
-    },
   }
 })
