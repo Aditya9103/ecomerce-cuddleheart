@@ -10,6 +10,7 @@ const storeSettingsSchema = new mongoose.Schema({
   freeShippingThreshold: { type: Number, default: 999 },
   codEnabled: { type: Boolean, default: true },
   onlineEnabled: { type: Boolean, default: false }, // flips true after Razorpay phase
+  defaultPaymentMethod: { type: String, enum: ['COD', 'RAZORPAY'], default: 'RAZORPAY' },
   announcementMessages: [{ type: String }],
   socialLinks: { 
     facebook: String, 

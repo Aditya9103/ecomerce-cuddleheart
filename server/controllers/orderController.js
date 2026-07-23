@@ -3,11 +3,63 @@ const Cart = require('../models/Cart');
 const User = require('../models/User');
 const StoreSettings = require('../models/StoreSettings');
 const Product = require('../models/Product');
+const Offer = require('../models/Offer');
 const sendEmail = require('../utils/sendEmail');
 const { generateInvoice } = require('../utils/generateInvoice');
 const razorpay = require('../config/razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+
+const calculateSecureOrderData = async (orderItems, couponCode, session) => {
+  if (!orderItems || orderItems.length === 0) {
+    throw new Error('No order items');
+  }
+
+  const items = [];
+  let itemsPrice = 0;
+
+  for (const item of orderItems) {
+    const product = await Product.findById(item.product).populate('activeOffer').session(session);
+    if (!product) throw new Error(`Product not found: ${item.product}`);
+    if (product.stock < item.qty) throw new Error(`Insufficient stock for product: ${product.name}`);
+
+    const priceToUse = (product.activeOffer && product.offerPrice) ? product.offerPrice : product.price;
+    itemsPrice += priceToUse * item.qty;
+
+    items.push({
+      product: product._id,
+      name: product.name,
+      image: product.images[0] || '',
+      quantity: item.qty,
+      price: priceToUse
+    });
+  }
+
+  const shippingPrice = itemsPrice > 999 ? 0 : 50;
+  let discount = 0;
+
+  if (couponCode) {
+    const offer = await Offer.findOne({ 
+      code: couponCode, 
+      type: 'coupon', 
+      isActive: true 
+    }).session(session);
+    
+    if (offer) {
+      if (itemsPrice >= (offer.minPurchaseAmount || 0)) {
+        if (offer.discountType === 'percentage') {
+          discount = Math.round((itemsPrice * offer.discountValue) / 100);
+        } else if (offer.discountType === 'fixed') {
+          discount = Math.round(offer.discountValue);
+        }
+      }
+    }
+  }
+
+  const totalAmount = Math.round((itemsPrice + shippingPrice) - discount);
+
+  return { items, itemsPrice, shippingPrice, discount, totalAmount };
+};
 
 const sendOrderConfirmation = async (order) => {
   try {
@@ -61,10 +113,6 @@ const addOrderItems = async (req, res) => {
       orderItems,
       shippingAddress,
       paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
       couponApplied
     } = req.body;
 
@@ -76,15 +124,7 @@ const addOrderItems = async (req, res) => {
       return res.status(400).json({ message: 'Only COD is currently supported.' });
     }
 
-    const items = orderItems.map(item => ({
-      product: item.product,
-      name: item.name,
-      image: item.image,
-      quantity: item.qty,
-      price: item.price
-    }));
-
-    const discount = (itemsPrice + shippingPrice + taxPrice) - totalPrice;
+    const { items, itemsPrice, shippingPrice, discount, totalAmount } = await calculateSecureOrderData(orderItems, couponApplied, null);
 
     const order = new Order({
       user: req.user._id,
@@ -93,7 +133,7 @@ const addOrderItems = async (req, res) => {
       paymentMethod,
       subtotal: itemsPrice,
       shippingFee: shippingPrice,
-      totalAmount: totalPrice,
+      totalAmount,
       couponCode: couponApplied,
       discount: discount > 0 ? discount : 0,
       paymentStatus: 'pending',
@@ -266,30 +306,17 @@ const createRazorpayOrder = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { orderItems, shippingAddress, itemsPrice, taxPrice, shippingPrice, totalPrice, couponApplied } = req.body;
+    const { orderItems, shippingAddress, couponApplied } = req.body;
     if (orderItems && orderItems.length === 0) {
       throw new Error('No order items');
     }
 
-    // 1. Verify Stock
-    const items = orderItems.map(item => ({
-      product: item.product,
-      name: item.name,
-      image: item.image,
-      quantity: item.qty,
-      price: item.price
-    }));
-
-    for (const item of items) {
-      const dbProduct = await Product.findById(item.product).session(session);
-      if (!dbProduct || dbProduct.stock < item.quantity) {
-        throw new Error(`Insufficient stock for product: ${item.name}`);
-      }
-    }
+    // 1. Calculate Secure Prices and Verify Stock
+    const { items, itemsPrice, shippingPrice, discount, totalAmount } = await calculateSecureOrderData(orderItems, couponApplied, session);
 
     // 2. Create Razorpay Order
     const options = {
-      amount: Math.round(totalPrice * 100), // amount in smallest currency unit
+      amount: totalAmount * 100, // amount in smallest currency unit
       currency: "INR",
       receipt: `receipt_order_${new Date().getTime()}`
     };
@@ -297,8 +324,6 @@ const createRazorpayOrder = async (req, res, next) => {
     const razorpayOrder = await razorpay.orders.create(options);
 
     // 3. Create Pending Order in DB
-    const discount = (itemsPrice + shippingPrice + taxPrice) - totalPrice;
-    
     const order = new Order({
       user: req.user._id,
       items,
@@ -306,7 +331,7 @@ const createRazorpayOrder = async (req, res, next) => {
       paymentMethod: 'RAZORPAY',
       subtotal: itemsPrice,
       shippingFee: shippingPrice,
-      totalAmount: totalPrice,
+      totalAmount,
       couponCode: couponApplied,
       discount: discount > 0 ? discount : 0,
       paymentStatus: 'pending',
@@ -351,6 +376,12 @@ const verifyRazorpayPayment = async (req, res, next) => {
       const order = await Order.findOne({ razorpayOrderId: razorpay_order_id }).session(session);
       if (!order) {
         throw new Error('Order not found');
+      }
+
+      if (order.paymentStatus === 'paid' || order.isPaid) {
+        await session.commitTransaction();
+        session.endSession();
+        return res.status(200).json({ message: 'Order already verified by webhook', orderId: order._id });
       }
 
       order.paymentStatus = 'paid';

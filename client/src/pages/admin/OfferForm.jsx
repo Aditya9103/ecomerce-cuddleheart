@@ -177,6 +177,7 @@ const OfferForm = () => {
               required
               min="0"
               value={discountValue}
+              onWheel={(e) => e.target.blur()}
               onChange={(e) => setDiscountValue(e.target.value)}
               className="p-3 border border-gray-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
               placeholder={discountType === 'percentage' ? 'e.g. 20' : 'e.g. 500'}
@@ -190,6 +191,7 @@ const OfferForm = () => {
               required
               min="0"
               value={minPurchaseAmount}
+              onWheel={(e) => e.target.blur()}
               onChange={(e) => setMinPurchaseAmount(e.target.value)}
               className="p-3 border border-gray-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             />

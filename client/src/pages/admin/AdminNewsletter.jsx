@@ -10,8 +10,8 @@ const AdminNewsletter = () => {
     const headers = ['Email', 'Subscribed At', 'Status'];
     const rows = subscribers.map(sub => [
       sub.email,
-      new Date(sub.createdAt).toLocaleDateString(),
-      sub.isActive ? 'Active' : 'Inactive'
+      new Date(sub.subscribedAt).toLocaleDateString(),
+      'Active'
     ]);
     
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -55,10 +55,10 @@ const AdminNewsletter = () => {
               {subscribers?.map((sub) => (
                 <tr key={sub._id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-4 text-sm font-medium text-gray-900">{sub.email}</td>
-                  <td className="p-4 text-sm text-gray-600">{new Date(sub.createdAt).toLocaleDateString()}</td>
+                  <td className="p-4 text-sm text-gray-600">{new Date(sub.subscribedAt).toLocaleDateString()}</td>
                   <td className="p-4 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${sub.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {sub.isActive ? 'Active' : 'Unsubscribed'}
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                      Active
                     </span>
                   </td>
                 </tr>

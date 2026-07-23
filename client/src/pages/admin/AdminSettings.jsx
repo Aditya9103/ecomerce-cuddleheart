@@ -15,6 +15,7 @@ const AdminSettings = () => {
     shippingCharge: 0,
     codEnabled: true,
     onlineEnabled: false,
+    defaultPaymentMethod: 'RAZORPAY',
   });
 
   useEffect(() => {
@@ -27,6 +28,7 @@ const AdminSettings = () => {
         shippingCharge: settings.shippingCharge || 0,
         codEnabled: settings.codEnabled !== undefined ? settings.codEnabled : true,
         onlineEnabled: settings.onlineEnabled !== undefined ? settings.onlineEnabled : false,
+        defaultPaymentMethod: settings.defaultPaymentMethod || 'RAZORPAY',
       });
     }
   }, [settings]);
@@ -108,6 +110,7 @@ const AdminSettings = () => {
                 name="shippingCharge"
                 value={formData.shippingCharge}
                 onChange={handleChange}
+                onWheel={(e) => e.target.blur()}
                 className="p-3 border border-gray-200 rounded-xl focus:border-primary outline-none"
               />
             </div>
@@ -118,6 +121,7 @@ const AdminSettings = () => {
                 name="freeShippingThreshold"
                 value={formData.freeShippingThreshold}
                 onChange={handleChange}
+                onWheel={(e) => e.target.blur()}
                 className="p-3 border border-gray-200 rounded-xl focus:border-primary outline-none"
               />
               <p className="text-xs text-gray-500">Orders above this amount will get free shipping.</p>
@@ -156,6 +160,19 @@ const AdminSettings = () => {
                 <p className="text-sm text-gray-500">Enable Razorpay integration for checkout.</p>
               </div>
             </label>
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Default Payment Method</label>
+            <select 
+              name="defaultPaymentMethod" 
+              value={formData.defaultPaymentMethod} 
+              onChange={handleChange} 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-primary outline-none transition-colors"
+            >
+              <option value="RAZORPAY">Razorpay (Online)</option>
+              <option value="COD">Cash on Delivery (COD)</option>
+            </select>
           </div>
         </div>
 

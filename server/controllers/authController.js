@@ -128,6 +128,10 @@ const authUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      if (user.isBlocked) {
+        return res.status(403).json({ message: 'Your account has been blocked. Please contact support.' });
+      }
+
       if (!user.isVerified) {
         // Resend OTP
         const otp = generateOTP();

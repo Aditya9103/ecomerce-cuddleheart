@@ -4,10 +4,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useGetCartQuery } from '../store/slices/cartApiSlice';
 import { useGetProfileQuery } from '../store/slices/authApiSlice';
 import { useValidateCouponMutation } from '../store/slices/offerApiSlice';
-import { 
-  useCreateOrderMutation, 
-  useCreateRazorpayOrderMutation, 
-  useVerifyRazorpayPaymentMutation 
+import {
+  useCreateOrderMutation,
+  useCreateRazorpayOrderMutation,
+  useVerifyRazorpayPaymentMutation
 } from '../store/slices/orderApiSlice';
 import { useGetStoreSettingsQuery } from '../store/slices/settingsApiSlice';
 import toast from 'react-hot-toast';
@@ -17,25 +17,41 @@ const Checkout = () => {
   const dispatch = useDispatch();
 
   const { userInfo } = useSelector((state) => state.auth);
-  
+
   const { data: cart, isLoading: isCartLoading } = useGetCartQuery();
   const { data: profile, isLoading: isProfileLoading } = useGetProfileQuery();
   const { data: storeSettings } = useGetStoreSettingsQuery();
-  
+
   const [validateCoupon, { isLoading: isValidating }] = useValidateCouponMutation();
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
   const [createRazorpayOrder, { isLoading: isCreatingRazorpay }] = useCreateRazorpayOrderMutation();
   const [verifyRazorpayPayment] = useVerifyRazorpayPaymentMutation();
 
   const [selectedAddress, setSelectedAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [discountInfo, setDiscountInfo] = useState(null); // { code, discountType, discountValue }
   const [couponError, setCouponError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const cartItems = cart?.items || [];
-  
+
+  useEffect(() => {
+    if (storeSettings && !paymentMethod) {
+      const preferredDefault = storeSettings.defaultPaymentMethod || 'RAZORPAY';
+      
+      if (preferredDefault === 'RAZORPAY' && storeSettings.onlineEnabled) {
+        setPaymentMethod('RAZORPAY');
+      } else if (preferredDefault === 'COD' && storeSettings.codEnabled !== false) {
+        setPaymentMethod('COD');
+      } else if (storeSettings.onlineEnabled) {
+        setPaymentMethod('RAZORPAY');
+      } else if (storeSettings.codEnabled !== false) {
+        setPaymentMethod('COD');
+      }
+    }
+  }, [storeSettings, paymentMethod]);
+
   // Calculate Totals
   const itemsPrice = Math.round(cartItems.reduce((acc, item) => {
     const p = item.product;
@@ -45,7 +61,7 @@ const Checkout = () => {
   }, 0));
   const taxPrice = 0; // Assuming tax is inclusive for now
   const shippingPrice = itemsPrice > 999 ? 0 : 50;
-  
+
   let discountAmount = 0;
   if (discountInfo) {
     if (discountInfo.discountType === 'percentage') {
@@ -68,15 +84,7 @@ const Checkout = () => {
     }
   }, [userInfo, navigate, profile, selectedAddress]);
 
-  useEffect(() => {
-    if (storeSettings) {
-      if (storeSettings.codEnabled === false && storeSettings.onlineEnabled === true) {
-        setPaymentMethod('RAZORPAY');
-      } else if (storeSettings.codEnabled !== false) {
-        setPaymentMethod('COD');
-      }
-    }
-  }, [storeSettings]);
+
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -128,10 +136,6 @@ const Checkout = () => {
         label: shippingAddressObj.label,
       },
       paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
       couponApplied: discountInfo ? discountInfo.code : null,
     };
 
@@ -145,7 +149,7 @@ const Checkout = () => {
     } else if (paymentMethod === 'RAZORPAY') {
       try {
         const res = await createRazorpayOrder(orderData).unwrap();
-        
+
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || '', // Needs to be exposed if frontend needs it, else checkout.js might require it. But typically backend passes key or frontend has it.
           amount: res.amount,
@@ -178,7 +182,7 @@ const Checkout = () => {
             color: '#EC4899'
           },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               toast.error('Payment cancelled by user');
             }
           }
@@ -189,7 +193,7 @@ const Checkout = () => {
           toast.error(response.error.description || 'Payment failed');
         });
         rzp.open();
-        
+
       } catch (err) {
         toast.error(err?.data?.message || 'Failed to initialize payment');
       }
@@ -202,22 +206,22 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen flex flex-col font-body bg-gray-50 text-gray-800">
-      
+
       <main className="flex-grow container mx-auto px-4 py-8 max-w-6xl">
         <h1 className="text-3xl font-heading font-bold text-heading mb-8">Checkout</h1>
-        
+
         <div className="flex flex-col lg:flex-row gap-8">
-          
+
           {/* Left Column: Details */}
           <div className="flex-1 flex flex-col gap-8">
-            
+
             {/* Address Selection */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">1. Shipping Address</h2>
                 <button onClick={() => navigate('/account')} className="text-primary text-sm font-medium hover:underline">Add New Address</button>
               </div>
-              
+
               {profile?.addresses?.length === 0 ? (
                 <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-sm">
                   You don't have any saved addresses. Please add an address to proceed.
@@ -225,14 +229,14 @@ const Checkout = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {profile?.addresses?.map(addr => (
-                    <label 
-                      key={addr._id} 
+                    <label
+                      key={addr._id}
                       className={`cursor-pointer p-4 border rounded-xl flex items-start gap-3 transition-colors ${selectedAddress === addr._id ? 'border-primary bg-primary-light/10' : 'border-gray-200 hover:border-primary-light'}`}
                     >
-                      <input 
-                        type="radio" 
-                        name="address" 
-                        value={addr._id} 
+                      <input
+                        type="radio"
+                        name="address"
+                        value={addr._id}
                         checked={selectedAddress === addr._id}
                         onChange={() => setSelectedAddress(addr._id)}
                         className="mt-1 accent-primary"
@@ -240,9 +244,9 @@ const Checkout = () => {
                       <div className="text-sm">
                         <span className="font-bold block mb-1">{addr.fullName} <span className="text-xs font-medium text-gray-500 ml-2 py-0.5 px-2 bg-gray-100 rounded-md">{addr.label}</span></span>
                         <p className="text-gray-600">
-                          {addr.flatHouse}, {addr.areaStreet} <br/>
-                          {addr.landmark && `Landmark: ${addr.landmark}`} {addr.landmark && <br/>}
-                          {addr.city}, {addr.state} {addr.pincode} <br/>
+                          {addr.flatHouse}, {addr.areaStreet} <br />
+                          {addr.landmark && `Landmark: ${addr.landmark}`} {addr.landmark && <br />}
+                          {addr.city}, {addr.state} {addr.pincode} <br />
                           Phone: {addr.phone}
                         </p>
                       </div>
@@ -257,14 +261,14 @@ const Checkout = () => {
               <h2 className="text-xl font-bold mb-4">2. Payment Method</h2>
               <div className="flex flex-col gap-4">
                 {storeSettings?.codEnabled !== false && (
-                  <label 
+                  <label
                     className={`cursor-pointer p-4 border rounded-xl flex items-center justify-between transition-colors ${paymentMethod === 'COD' ? 'border-primary bg-primary-light/10' : 'border-gray-200 hover:border-primary-light'}`}
                   >
                     <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value="COD" 
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="COD"
                         checked={paymentMethod === 'COD'}
                         onChange={() => setPaymentMethod('COD')}
                         className="accent-primary"
@@ -278,14 +282,14 @@ const Checkout = () => {
                 )}
 
                 {storeSettings?.onlineEnabled && (
-                  <label 
+                  <label
                     className={`cursor-pointer p-4 border rounded-xl flex items-center justify-between transition-colors ${paymentMethod === 'RAZORPAY' ? 'border-primary bg-primary-light/10' : 'border-gray-200 hover:border-primary-light'}`}
                   >
                     <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value="RAZORPAY" 
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="RAZORPAY"
                         checked={paymentMethod === 'RAZORPAY'}
                         onChange={() => setPaymentMethod('RAZORPAY')}
                         className="accent-primary"
@@ -297,7 +301,7 @@ const Checkout = () => {
                     </div>
                   </label>
                 )}
-                
+
                 {storeSettings?.codEnabled === false && !storeSettings?.onlineEnabled && (
                   <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm">
                     No payment methods are currently available. Please contact support.
@@ -312,7 +316,7 @@ const Checkout = () => {
           <div className="w-full lg:w-96 flex-shrink-0">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
               <h2 className="text-xl font-bold mb-4 pb-4 border-b border-gray-100">Order Summary</h2>
-              
+
               {/* Items */}
               <div className="flex flex-col gap-3 mb-6 max-h-60 overflow-y-auto pr-2">
                 {cartItems.map(item => (
@@ -330,9 +334,9 @@ const Checkout = () => {
               {/* Coupon */}
               <div className="mb-6 pt-4 border-t border-gray-100">
                 <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Coupon Code" 
+                  <input
+                    type="text"
+                    placeholder="Coupon Code"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:border-primary outline-none uppercase"
@@ -373,7 +377,7 @@ const Checkout = () => {
                 <span className="text-2xl font-extrabold text-gray-900">₹{totalPrice}</span>
               </div>
 
-              <button 
+              <button
                 onClick={handlePlaceOrder}
                 disabled={isCreating || isCreatingRazorpay || cartItems.length === 0 || !selectedAddress}
                 className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -382,7 +386,7 @@ const Checkout = () => {
               </button>
             </div>
           </div>
-          
+
         </div>
       </main>
 
@@ -393,7 +397,7 @@ const Checkout = () => {
             <div className="p-6">
               <h3 className="text-xl font-heading font-bold text-gray-900 mb-2">Confirm Order</h3>
               <p className="text-gray-600 mb-4">Are you sure you want to place this order?</p>
-              
+
               <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm border border-gray-100">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total Amount:</span>
@@ -406,13 +410,13 @@ const Checkout = () => {
               </div>
 
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => setShowConfirmModal(false)}
                   className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={executePlaceOrder}
                   className="flex-1 px-4 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
                 >
