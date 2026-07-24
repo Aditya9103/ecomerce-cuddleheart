@@ -45,7 +45,7 @@ const Offers = () => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const activeOffers = offers?.filter(offer => offer.isActive && offer.type === 'coupon') || [];
+  const activeOffers = offers?.filter(offer => offer.isActive && offer.type === 'coupon' && offer.isPubliclyVisible) || [];
   const comboDeals = offers?.filter(offer => offer.isActive && offer.type === 'combo') || [];
   const saleOffers = offers?.filter(offer => offer.isActive && offer.type === 'sale') || [];
 

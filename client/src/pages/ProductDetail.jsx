@@ -7,6 +7,7 @@ import { useToggleWishlistMutation, useGetWishlistQuery } from '../store/slices/
 import { useGetMyOrdersQuery } from '../store/slices/orderApiSlice';
 import toast from 'react-hot-toast';
 import { ShoppingCart, Star, Heart, Loader2, MapPin, ShieldCheck, RefreshCw, Truck, Minus, Plus, CheckCircle2, XCircle } from 'lucide-react';
+import { fetchPincodeDetails } from '../utils/pincode';
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -91,13 +92,21 @@ const ProductDetail = () => {
     await toggleWishlist({ productId: product._id });
   };
 
-  const handlePincodeCheck = (e) => {
+  const handlePincodeCheck = async (e) => {
     e.preventDefault();
-    if (pincode.length === 6) {
-      setPincodeMessage({
-        type: 'success',
-        text: `Delivery available. Estimated by ${new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
-      });
+    if (pincode.length === 6 && /^\d+$/.test(pincode)) {
+      setPincodeMessage({ type: 'info', text: 'Checking delivery availability...' });
+      
+      const details = await fetchPincodeDetails(pincode);
+      
+      if (details.success) {
+        setPincodeMessage({
+          type: 'success',
+          text: `Delivery available to ${details.city}, ${details.state}. Estimated by ${new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+        });
+      } else {
+        setPincodeMessage({ type: 'error', text: 'Sorry, we do not deliver to this pincode.' });
+      }
     } else {
       setPincodeMessage({ type: 'error', text: 'Please enter a valid 6-digit pincode.' });
     }
@@ -320,7 +329,7 @@ const ProductDetail = () => {
               </form>
 
               {pincodeMessage.text && (
-                <div className={`mt-3 text-xs font-semibold ${pincodeMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                <div className={`mt-3 text-xs font-semibold ${pincodeMessage.type === 'success' ? 'text-green-600' : pincodeMessage.type === 'info' ? 'text-blue-500' : 'text-red-500'}`}>
                   {pincodeMessage.text}
                 </div>
               )}

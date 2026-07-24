@@ -72,6 +72,18 @@ const validateCoupon = async (req, res) => {
   }
 };
 
+// @desc    Get all public offers
+// @route   GET /api/offers/public
+// @access  Public
+const getPublicOffers = async (req, res, next) => {
+  try {
+    const offers = await Offer.find({ isActive: true, isPubliclyVisible: true, type: 'coupon' }).sort({ createdAt: -1 });
+    res.json(offers);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all offers
 // @route   GET /api/offers
 // @access  Private/Admin
@@ -89,7 +101,7 @@ const getOffers = async (req, res, next) => {
 // @access  Private/Admin
 const createOffer = async (req, res, next) => {
   try {
-    const { title, description, code, type, discountType, discountValue, minPurchaseAmount, isActive, startDate, endDate, applicableProducts } = req.body;
+    const { title, description, code, type, discountType, discountValue, minPurchaseAmount, isActive, isPubliclyVisible, startDate, endDate, applicableProducts } = req.body;
     let image = null;
 
     if (req.file) {
@@ -106,6 +118,7 @@ const createOffer = async (req, res, next) => {
       minPurchaseAmount,
       image,
       isActive: isActive !== undefined ? isActive : true,
+      isPubliclyVisible: isPubliclyVisible !== undefined ? isPubliclyVisible : false,
       startDate: startDate || Date.now(),
       endDate: endDate || Date.now() + 30*24*60*60*1000, // default +30 days
       applicableProducts: type === 'sale' && applicableProducts ? JSON.parse(applicableProducts) : []
@@ -131,7 +144,7 @@ const updateOffer = async (req, res, next) => {
   try {
     const offer = await Offer.findById(req.params.id);
     if (offer) {
-      const { title, description, code, type, discountType, discountValue, minPurchaseAmount, isActive, startDate, endDate, applicableProducts } = req.body;
+      const { title, description, code, type, discountType, discountValue, minPurchaseAmount, isActive, isPubliclyVisible, startDate, endDate, applicableProducts } = req.body;
       
       offer.title = title || offer.title;
       offer.description = description !== undefined ? description : offer.description;
@@ -141,6 +154,7 @@ const updateOffer = async (req, res, next) => {
       offer.discountValue = discountValue || offer.discountValue;
       offer.minPurchaseAmount = minPurchaseAmount !== undefined ? minPurchaseAmount : offer.minPurchaseAmount;
       offer.isActive = isActive !== undefined ? isActive : offer.isActive;
+      offer.isPubliclyVisible = isPubliclyVisible !== undefined ? isPubliclyVisible : offer.isPubliclyVisible;
       offer.startDate = startDate || offer.startDate;
       offer.endDate = endDate || offer.endDate;
       
@@ -191,6 +205,7 @@ const deleteOffer = async (req, res, next) => {
 
 module.exports = {
   validateCoupon,
+  getPublicOffers,
   getOffers,
   createOffer,
   updateOffer,

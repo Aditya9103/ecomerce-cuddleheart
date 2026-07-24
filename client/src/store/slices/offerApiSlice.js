@@ -9,6 +9,10 @@ export const offerApiSlice = baseApi.injectEndpoints({
         body: data, // { code, cartTotal }
       }),
     }),
+    getPublicOffers: builder.query({
+      query: () => '/offers/public',
+      providesTags: ['Offer'],
+    }),
     getOffers: builder.query({
       query: () => '/offers',
       providesTags: ['Offer'],
@@ -41,6 +45,7 @@ export const offerApiSlice = baseApi.injectEndpoints({
 
 export const {
   useValidateCouponMutation,
+  useGetPublicOffersQuery,
   useGetOffersQuery,
   useCreateOfferMutation,
   useUpdateOfferMutation,

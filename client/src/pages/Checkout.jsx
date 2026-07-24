@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useGetCartQuery } from '../store/slices/cartApiSlice';
 import { useGetProfileQuery } from '../store/slices/authApiSlice';
-import { useValidateCouponMutation } from '../store/slices/offerApiSlice';
+import { useValidateCouponMutation, useGetPublicOffersQuery } from '../store/slices/offerApiSlice';
 import {
   useCreateOrderMutation,
   useCreateRazorpayOrderMutation,
@@ -21,6 +21,7 @@ const Checkout = () => {
   const { data: cart, isLoading: isCartLoading } = useGetCartQuery();
   const { data: profile, isLoading: isProfileLoading } = useGetProfileQuery();
   const { data: storeSettings } = useGetStoreSettingsQuery();
+  const { data: publicOffers } = useGetPublicOffersQuery();
 
   const [validateCoupon, { isLoading: isValidating }] = useValidateCouponMutation();
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
@@ -346,10 +347,31 @@ const Checkout = () => {
                   </button>
                 </form>
                 {couponError && <p className="text-red-500 text-xs mt-2">{couponError}</p>}
+                
+                {/* Available Public Coupons */}
+                {!discountInfo && publicOffers?.length > 0 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {publicOffers.map(offer => (
+                      <button 
+                        key={offer._id}
+                        type="button"
+                        onClick={() => setCouponCode(offer.code)}
+                        className="flex shrink-0 items-center gap-2 px-3 py-1.5 border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-md text-xs font-bold text-primary transition-colors"
+                      >
+                        <span className="border-r border-primary/20 pr-2">{offer.code}</span>
+                        <span>{offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `₹${offer.discountValue} OFF`}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {discountInfo && (
-                  <div className="mt-2 text-green-600 text-xs flex justify-between bg-green-50 p-2 rounded">
-                    <span>Coupon '{discountInfo.code}' applied!</span>
-                    <button type="button" onClick={() => setDiscountInfo(null)} className="font-bold hover:underline">Remove</button>
+                  <div className="mt-3 text-green-600 text-xs flex justify-between items-center bg-green-50 p-2.5 rounded-lg border border-green-100">
+                    <span className="font-medium">Coupon <strong className="font-bold">'{discountInfo.code}'</strong> applied!</span>
+                    <button type="button" onClick={() => {
+                      setDiscountInfo(null);
+                      setCouponCode('');
+                    }} className="font-bold hover:underline">Remove</button>
                   </div>
                 )}
               </div>

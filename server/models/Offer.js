@@ -10,6 +10,7 @@ const offerSchema = new mongoose.Schema({
   minPurchaseAmount: { type: Number, default: 0 },
   image: { type: String },
   isActive: { type: Boolean, default: true },
+  isPubliclyVisible: { type: Boolean, default: false },
   startDate: { type: Date },
   endDate: { type: Date },
   

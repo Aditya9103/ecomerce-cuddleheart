@@ -18,6 +18,7 @@ const OfferForm = () => {
   const [discountValue, setDiscountValue] = useState('');
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('0');
   const [isActive, setIsActive] = useState(true);
+  const [isPubliclyVisible, setIsPubliclyVisible] = useState(false);
   
   const [existingImage, setExistingImage] = useState(null); 
   const [newImage, setNewImage] = useState(null); 
@@ -42,6 +43,7 @@ const OfferForm = () => {
       setDiscountValue(offerToEdit.discountValue);
       setMinPurchaseAmount(offerToEdit.minPurchaseAmount);
       setIsActive(offerToEdit.isActive);
+      setIsPubliclyVisible(offerToEdit.isPubliclyVisible || false);
       setExistingImage(offerToEdit.image || null);
       if (offerToEdit.type === 'sale') {
         setApplicableProducts(offerToEdit.applicableProducts || []);
@@ -77,6 +79,7 @@ const OfferForm = () => {
     formData.append('discountValue', discountValue);
     formData.append('minPurchaseAmount', minPurchaseAmount);
     formData.append('isActive', isActive);
+    formData.append('isPubliclyVisible', isPubliclyVisible);
     
     if (type === 'combo' && newImage) {
       formData.append('image', newImage);
@@ -197,15 +200,29 @@ const OfferForm = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2 md:mt-8">
-             <input 
-               type="checkbox" 
-               id="isActive"
-               checked={isActive}
-               onChange={(e) => setIsActive(e.target.checked)}
-               className="w-5 h-5 accent-primary"
-             />
-             <label htmlFor="isActive" className="text-sm font-bold text-gray-700 cursor-pointer">Active</label>
+          <div className="flex flex-col gap-4 md:mt-8">
+            <div className="flex items-center gap-2">
+               <input 
+                 type="checkbox" 
+                 id="isActive"
+                 checked={isActive}
+                 onChange={(e) => setIsActive(e.target.checked)}
+                 className="w-5 h-5 accent-primary"
+               />
+               <label htmlFor="isActive" className="text-sm font-bold text-gray-700 cursor-pointer">Active</label>
+            </div>
+            {type === 'coupon' && (
+              <div className="flex items-center gap-2">
+                 <input 
+                   type="checkbox" 
+                   id="isPubliclyVisible"
+                   checked={isPubliclyVisible}
+                   onChange={(e) => setIsPubliclyVisible(e.target.checked)}
+                   className="w-5 h-5 accent-primary"
+                 />
+                 <label htmlFor="isPubliclyVisible" className="text-sm font-bold text-gray-700 cursor-pointer">Visible to Users (Show in Cart)</label>
+              </div>
+            )}
           </div>
         </div>
 
