@@ -52,6 +52,7 @@ const AdminOrderDetail = lazy(() => import('./pages/admin/AdminOrderDetail'));
 const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'));
 const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
 const AdminNewsletter = lazy(() => import('./pages/admin/AdminNewsletter'));
+const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
 const MainLayout = () => {
@@ -157,6 +158,7 @@ function App() {
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="contacts" element={<AdminContacts />} />
           <Route path="newsletter" element={<AdminNewsletter />} />
+          <Route path="reviews" element={<AdminReviews />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
       </Route>

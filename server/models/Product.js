@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+const reviewSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
+  name: { type: String, required: true },
+  rating: { type: Number, required: true },
+  comment: { type: String, required: true },
+}, { timestamps: true });
+
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   slug: { type: String, unique: true, required: true },
@@ -16,6 +23,7 @@ const productSchema = new mongoose.Schema({
   discountPercent: { type: Number, default: 0 },
   rating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
+  reviews: [reviewSchema],
   stock: { type: Number, default: 0 },
   sku: { type: String },
   tags: [{ type: String, enum: ['bestseller', 'new-arrival', 'combo', 'featured', 'limited-edition', 'discounted', 'trending'] }],
@@ -24,6 +32,7 @@ const productSchema = new mongoose.Schema({
   offerPrice: { type: Number },
   ageGroup: { type: String, enum: ['0-18 months', '18-36 months', '3-5 years', '9-12 years', '12+ years', 'Kids', 'All Ages'] },
   gender: { type: String, enum: ['Unisex', 'Girls', 'Boys'] },
+  size: { type: String, enum: ['Small (0-20 cm)', 'Medium (20-40 cm)', 'Large (40-60 cm)', 'Extra Large (60 cm+)'] },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

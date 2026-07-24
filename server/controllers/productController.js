@@ -10,12 +10,27 @@ const getProducts = async (req, res, next) => {
     const pageSize = Number(req.query.limit) || 12;
     const page = Number(req.query.page) || 1;
 
-    const keyword = req.query.search ? {
-      name: {
-        $regex: req.query.search,
-        $options: 'i',
-      },
-    } : {};
+    let keyword = {};
+    if (req.query.search) {
+      const searchTerms = req.query.search.split(' ').filter(term => term.trim() !== '');
+      
+      // Create a regex array for each term to ensure all terms must match somewhere in the product
+      if (searchTerms.length > 0) {
+        keyword = {
+          $and: searchTerms.map(term => {
+            const regex = new RegExp(term, 'i');
+            return {
+              $or: [
+                { name: regex },
+                { description: regex },
+                { sku: regex },
+                { highlights: regex }
+              ]
+            };
+          })
+        };
+      }
+    }
 
     const category = req.query.category ? { category: req.query.category } : {};
     const tag = req.query.tag ? { tags: req.query.tag } : {};
@@ -23,6 +38,7 @@ const getProducts = async (req, res, next) => {
     // Multiple comma-separated selections
     const ageGroupFilter = req.query.ageGroup ? { ageGroup: { $in: req.query.ageGroup.split(',') } } : {};
     const genderFilter = req.query.gender ? { gender: { $in: req.query.gender.split(',') } } : {};
+    const sizeFilter = req.query.size ? { size: { $in: req.query.size.split(',') } } : {};
     
     // Price filter
     let priceFilter = {};
@@ -50,6 +66,7 @@ const getProducts = async (req, res, next) => {
       ...tag, 
       ...ageGroupFilter,
       ...genderFilter,
+      ...sizeFilter,
       ...priceFilter, 
       ...discountFilter,
       ...offerFilter, 
@@ -58,9 +75,10 @@ const getProducts = async (req, res, next) => {
 
     // Sorting
     let sort = {};
-    if (req.query.sort === 'price_asc') sort = { price: 1 };
-    else if (req.query.sort === 'price_desc') sort = { price: -1 };
+    if (req.query.sort === 'price_asc' || req.query.sort === 'price_low_high') sort = { price: 1 };
+    else if (req.query.sort === 'price_desc' || req.query.sort === 'price_high_low') sort = { price: -1 };
     else if (req.query.sort === 'newest') sort = { createdAt: -1 };
+    else if (req.query.sort === 'popularity') sort = { reviewCount: -1, rating: -1, bestSellerRank: 1 };
     else if (req.query.tag === 'bestseller') sort = { bestSellerRank: 1, rating: -1 };
     else sort = { createdAt: -1 }; // default
 
@@ -336,15 +354,112 @@ const deleteBanner = async (req, res, next) => {
   }
 };
 
-module.exports = { 
-  getProducts, 
-  getProductBySlug, 
-  getCategories, 
+// @desc    Create new review
+// @route   POST /api/products/:id/reviews
+// @access  Private
+const createProductReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    
+    if (!rating || !comment) {
+      return res.status(400).json({ message: 'Please provide rating and comment' });
+    }
+    
+    const product = await Product.findById(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Check if user already reviewed
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === req.user._id.toString()
+    );
+    
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: 'Product already reviewed' });
+    }
+    
+    const review = {
+      name: req.user.name,
+      rating: Number(rating),
+      comment,
+      user: req.user._id,
+    };
+    
+    product.reviews.push(review);
+    
+    product.reviewCount = product.reviews.length;
+    
+    product.rating =
+      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      product.reviews.length;
+      
+    await product.save();
+    res.status(201).json({ message: 'Review added' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get all reviews (Admin)
+// @route   GET /api/products/reviews/all
+// @access  Private/Admin
+const getAllReviews = async (req, res) => {
+  try {
+    const products = await Product.find({ 'reviews.0': { $exists: true } }).select('name reviews');
+    
+    let allReviews = [];
+    products.forEach(product => {
+      product.reviews.forEach(review => {
+        allReviews.push({
+          ...review.toObject(),
+          productName: product.name,
+          productId: product._id
+        });
+      });
+    });
+    
+    // Sort by newest first
+    allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json(allReviews);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Delete a review (Admin)
+// @route   DELETE /api/products/:productId/reviews/:reviewId
+// @access  Private/Admin
+const deleteReview = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.productId);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    
+    product.reviews = product.reviews.filter(r => r._id.toString() !== req.params.reviewId);
+    product.reviewCount = product.reviews.length;
+    product.rating = product.reviews.length > 0 ? (product.reviews.reduce((acc, item) => item.rating + acc, 0) / product.reviews.length) : 0;
+    
+    await product.save();
+    res.json({ message: 'Review deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+module.exports = {
+  getProducts,
+  getProductBySlug,
+  getCategories,
   getBanners,
   createProduct,
   updateProduct,
   deleteProduct,
   createBanner,
   updateBanner,
-  deleteBanner
+  deleteBanner,
+  createProductReview,
+  getAllReviews,
+  deleteReview
 };

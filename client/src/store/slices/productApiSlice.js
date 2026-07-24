@@ -95,6 +95,25 @@ export const productApiSlice = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Banner'],
     }),
+    createProductReview: builder.mutation({
+      query: (data) => ({
+        url: `/products/${data.productId}/reviews`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+    getAllReviewsAdmin: builder.query({
+      query: () => '/reviews/all',
+      providesTags: ['Review'],
+    }),
+    deleteReviewAdmin: builder.mutation({
+      query: ({ productId, reviewId }) => ({
+        url: `/products/${productId}/reviews/${reviewId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Product', 'Review'],
+    }),
   }),
 });
 
@@ -112,4 +131,7 @@ export const {
   useCreateBannerMutation,
   useUpdateBannerMutation,
   useDeleteBannerMutation,
+  useCreateProductReviewMutation,
+  useGetAllReviewsAdminQuery,
+  useDeleteReviewAdminMutation,
 } = productApiSlice;

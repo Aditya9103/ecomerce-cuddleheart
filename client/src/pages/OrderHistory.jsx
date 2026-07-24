@@ -54,9 +54,16 @@ const OrderHistory = () => {
                         </span>
                       </td>
                       <td className="p-6 text-right">
-                        <Link to={`/orders/${order._id}`} className="inline-flex items-center gap-1 bg-white border border-gray-200 hover:border-primary hover:text-primary text-gray-700 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm hover:shadow">
-                          View Details <ChevronRight size={14} />
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          {((order.orderStatus?.toLowerCase() === 'delivered') || (order.status?.toLowerCase() === 'delivered')) && (
+                            <Link to={`/orders/${order._id}`} className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm">
+                              Write Review
+                            </Link>
+                          )}
+                          <Link to={`/orders/${order._id}`} className="inline-flex items-center gap-1 bg-white border border-gray-200 hover:border-primary hover:text-primary text-gray-700 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm hover:shadow">
+                            View Details <ChevronRight size={14} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

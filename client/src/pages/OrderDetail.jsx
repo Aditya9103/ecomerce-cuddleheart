@@ -134,6 +134,14 @@ const OrderDetail = () => {
                     <div className="flex-1">
                       <Link to={`/product/${item.product}`} className="font-bold text-lg text-gray-900 hover:text-primary transition-colors line-clamp-1">{item.name}</Link>
                       <p className="text-gray-500 text-sm mt-1">Quantity: <span className="font-bold text-gray-700">{item.quantity}</span></p>
+                      
+                      {(order.orderStatus?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'delivered') && (
+                        <div className="mt-3">
+                          <Link to={`/product/${item.product}#reviews`} className="inline-flex items-center text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors">
+                            Write a Review
+                          </Link>
+                        </div>
+                      )}
                     </div>
                     <div className="font-extrabold text-xl text-gray-900">₹{item.price * item.quantity}</div>
                   </div>

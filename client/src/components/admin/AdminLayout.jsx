@@ -22,6 +22,7 @@ const AdminLayout = () => {
     { path: '/admin/customers', icon: <Users size={20} />, label: 'Customers' },
     { path: '/admin/newsletter', icon: <Mail size={20} />, label: 'Newsletter' },
     { path: '/admin/contacts', icon: <Mail size={20} />, label: 'Messages' },
+    { path: '/admin/reviews', icon: <Tags size={20} />, label: 'Reviews' },
     { path: '/admin/settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 

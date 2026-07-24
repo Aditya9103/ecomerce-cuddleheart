@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getProducts, getProductBySlug, getCategories, getBanners, createProduct, updateProduct, deleteProduct, createBanner, updateBanner, deleteBanner } = require('../controllers/productController');
+const { getProducts, getProductBySlug, getCategories, getBanners, createProduct, updateProduct, deleteProduct, createBanner, updateBanner, deleteBanner, createProductReview, getAllReviews, deleteReview } = require('../controllers/productController');
 const { protect, requireAdmin } = require('../middleware/authMiddleware');
 const { uploadS3 } = require('../utils/uploadFile');
+
+router.route('/reviews/all')
+  .get(protect, requireAdmin, getAllReviews);
 
 router.route('/products')
   .get(getProducts)
@@ -14,6 +17,12 @@ router.route('/products/:slug')
 router.route('/products/:id')
   .put(protect, requireAdmin, uploadS3.array('images', 5), updateProduct)
   .delete(protect, requireAdmin, deleteProduct);
+
+router.route('/products/:id/reviews')
+  .post(protect, createProductReview);
+
+router.route('/products/:productId/reviews/:reviewId')
+  .delete(protect, requireAdmin, deleteReview);
 
 router.get('/categories', getCategories);
 router.route('/banners')

@@ -19,6 +19,10 @@ const ProductForm = () => {
   const [stock, setStock] = useState('');
   const [tags, setTags] = useState([]);
   
+  const [ageGroup, setAgeGroup] = useState('');
+  const [gender, setGender] = useState('');
+  const [size, setSize] = useState('');
+  
   const [highlights, setHighlights] = useState(['']); // Array of strings
   const [specifications, setSpecifications] = useState([{ name: '', value: '' }]); // Array of objects
   
@@ -47,6 +51,9 @@ const ProductForm = () => {
       setCategory(product.category?._id || product.category);
       setStock(product.stock);
       setTags(product.tags || []);
+      setAgeGroup(product.ageGroup || '');
+      setGender(product.gender || '');
+      setSize(product.size || '');
       setHighlights(product.highlights?.length ? product.highlights : ['']);
       setSpecifications(product.specifications?.length ? product.specifications : [{ name: '', value: '' }]);
       setExistingImages(product.images || []);
@@ -87,6 +94,10 @@ const ProductForm = () => {
     formData.append('category', category);
     formData.append('stock', stock);
     formData.append('tags', tags.join(','));
+    
+    if (ageGroup) formData.append('ageGroup', ageGroup);
+    if (gender) formData.append('gender', gender);
+    if (size) formData.append('size', size);
     
     // Filter empty highlights and specs before sending
     const validHighlights = highlights.filter(h => h.trim() !== '');
@@ -150,6 +161,48 @@ const ProductForm = () => {
               <option value="">Select a category</option>
               {categories?.map(c => (
                 <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-700">Age Group</label>
+            <select 
+              value={ageGroup}
+              onChange={(e) => setAgeGroup(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Select Age Group</option>
+              {['0-18 months', '18-36 months', '3-5 years', '9-12 years', '12+ years', 'Kids', 'All Ages'].map(age => (
+                <option key={age} value={age}>{age}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-700">Gender</label>
+            <select 
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Select Gender</option>
+              {['Unisex', 'Girls', 'Boys'].map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-700">Size</label>
+            <select 
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+              className="p-3 border border-gray-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Select Size</option>
+              {['Small (0-20 cm)', 'Medium (20-40 cm)', 'Large (40-60 cm)', 'Extra Large (60 cm+)'].map(s => (
+                <option key={s} value={s}>{s}</option>
               ))}
             </select>
           </div>
